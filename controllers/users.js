@@ -41,8 +41,23 @@ const createUser = (req, res) => User.create({ ...req.body })
     return res.status(500).send('Server Error');
   });
 
+const updateUser = (req, res) => User.findByIdAndUpdate(
+  req.user._id,
+  req.body,
+  { new: true },
+)
+  .then((user) => {
+    res.status(200).send(user);
+  })
+  .catch((error) => {
+    console.log(error);
+
+    return res.status(500).send('Server Error');
+  });
+
 module.exports = {
   getUsers,
   getUserById,
   createUser,
+  updateUser,
 };
