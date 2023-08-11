@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const usersRouter = require('./routes/users');
-const cardsRouter = require('./routes/cards');
+const router = require('./routes');
 require('dotenv').config();
 
 const {
@@ -27,8 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(usersRouter);
-app.use(cardsRouter);
+app.use(router);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
