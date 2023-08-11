@@ -2,6 +2,7 @@ const Card = require('../models/card');
 
 const getCards = (req, res) => Card.find({})
   .populate('owner')
+  .populate('likes')
   .then((cards) => {
     res.status(200).send(cards);
   })
@@ -23,7 +24,7 @@ const createCard = (req, res) => Card.create({ owner: req.user._id, ...req.body 
     return res.status(500).send('Server Error');
   });
 
-const deleteCardById = (req, res) => Card.findByIdAndDelete(req.params.id)
+const deleteCard = (req, res) => Card.findByIdAndDelete(req.params.cardId)
   .orFail(new Error('NotFoundError'))
   .then(() => {
     res.status(201).send({ message: 'Карточка удалена' });
@@ -42,8 +43,39 @@ const deleteCardById = (req, res) => Card.findByIdAndDelete(req.params.id)
     return res.status(500).send('Server Error');
   });
 
+const likeCard = (req, res) => Card.findByIdAndUpdate(
+  req.params.cardId,
+  { $addToSet: { likes: req.user._id } },
+  { new: true },
+)
+  .populate('likes')
+  .then((user) => {
+    res.status(200).send(user);
+  })
+  .catch((error) => {
+    console.log(error);
+
+    return res.status(500).send('Server Error');
+  });
+
+const dislikeCard = (req, res) => Card.findByIdAndUpdate(
+  req.params.cardId,
+  { $pull: { likes: req.user._id } },
+  { new: true },
+)
+  .then((user) => {
+    res.status(200).send(user);
+  })
+  .catch((error) => {
+    console.log(error);
+
+    return res.status(500).send('Server Error');
+  });
+
 module.exports = {
   getCards,
   createCard,
-  deleteCardById,
+  deleteCard,
+  likeCard,
+  dislikeCard,
 };
