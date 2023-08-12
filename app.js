@@ -28,6 +28,10 @@ app.use((req, res, next) => {
 
 app.use(router);
 
+app.use((req, res) => {
+  res.status(404).json({ message: 'Ой! Такой страницы нет' });
+});
+
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
 });
