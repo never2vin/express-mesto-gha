@@ -6,7 +6,7 @@ const getCards = (req, res) => Card.find({})
   .then((cards) => {
     res.status(200).send(cards);
   })
-  .catch(() => res.status(500).send('Server Error'));
+  .catch(() => res.status(500).send('На сервере произошла ошибка'));
 
 const createCard = (req, res) => Card.create({ owner: req.user._id, ...req.body })
   .then((card) => {
@@ -21,13 +21,13 @@ const createCard = (req, res) => Card.create({ owner: req.user._id, ...req.body 
       });
     }
 
-    return res.status(500).send('Server Error');
+    return res.status(500).send('На сервере произошла ошибка');
   });
 
 const deleteCard = (req, res) => Card.findByIdAndDelete(req.params.cardId)
   .orFail(new Error('NotFoundError'))
   .then(() => {
-    res.status(201).send({ message: 'Карточка удалена' });
+    res.status(200).send({ message: 'Карточка удалена' });
   })
   .catch((error) => {
     console.log(error);
@@ -40,7 +40,7 @@ const deleteCard = (req, res) => Card.findByIdAndDelete(req.params.cardId)
       return res.status(404).send({ message: 'Карточка не найдена' });
     }
 
-    return res.status(500).send('Server Error');
+    return res.status(500).send('На сервере произошла ошибка');
   });
 
 const likeCard = (req, res) => Card.findByIdAndUpdate(
@@ -48,6 +48,7 @@ const likeCard = (req, res) => Card.findByIdAndUpdate(
   { $addToSet: { likes: req.user._id } },
   { new: true },
 )
+  .orFail(new Error('NotFoundError'))
   .populate('likes')
   .then((user) => {
     res.status(200).send(user);
@@ -55,7 +56,15 @@ const likeCard = (req, res) => Card.findByIdAndUpdate(
   .catch((error) => {
     console.log(error);
 
-    return res.status(500).send('Server Error');
+    if (error.name === 'CastError') {
+      return res.status(400).send({ message: 'Переданы некорректные данные' });
+    }
+
+    if (error.message === 'NotFoundError') {
+      return res.status(404).send({ message: 'Карточка не найдена' });
+    }
+
+    return res.status(500).send('На сервере произошла ошибка');
   });
 
 const dislikeCard = (req, res) => Card.findByIdAndUpdate(
@@ -63,13 +72,22 @@ const dislikeCard = (req, res) => Card.findByIdAndUpdate(
   { $pull: { likes: req.user._id } },
   { new: true },
 )
+  .orFail(new Error('NotFoundError'))
   .then((user) => {
     res.status(200).send(user);
   })
   .catch((error) => {
     console.log(error);
 
-    return res.status(500).send('Server Error');
+    if (error.name === 'CastError') {
+      return res.status(400).send({ message: 'Переданы некорректные данные' });
+    }
+
+    if (error.message === 'NotFoundError') {
+      return res.status(404).send({ message: 'Карточка не найдена' });
+    }
+
+    return res.status(500).send('На сервере произошла ошибка');
   });
 
 module.exports = {
