@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
 const router = require('./routes');
 require('dotenv').config();
 
@@ -16,6 +17,7 @@ mongoose.connect(MONGODB_URL, {
 
 const app = express();
 
+app.use(helmet());
 app.use(express.json());
 
 app.use((req, res, next) => {
