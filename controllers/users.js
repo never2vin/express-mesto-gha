@@ -1,28 +1,30 @@
 const User = require('../models/user');
 
+const statusCodes = require('../utils/constants').HTTP_STATUS;
+
 const getUsers = (req, res) => User.find({})
   .then((users) => {
-    res.status(200).send(users);
+    res.status(statusCodes.OK).send(users);
   })
-  .catch(() => res.status(500).send('На сервере произошла ошибка'));
+  .catch(() => res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка'));
 
 const getUserById = (req, res) => User.findById(req.params.id)
   .orFail(new Error('NotFoundError'))
   .then((user) => {
-    res.status(200).send(user);
+    res.status(statusCodes.OK).send(user);
   })
   .catch((error) => {
     console.log(error);
 
     if (error.name === 'CastError') {
-      return res.status(400).send({ message: 'Переданы некорректные данные' });
+      return res.status(statusCodes.BAD_REQUEST).send({ message: 'Переданы некорректные данные' });
     }
 
     if (error.message === 'NotFoundError') {
-      return res.status(404).send({ message: 'Пользователь не найден' });
+      return res.status(statusCodes.NOT_FOUND).send({ message: 'Пользователь не найден' });
     }
 
-    return res.status(500).send('На сервере произошла ошибка');
+    return res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка');
   });
 
 const createUser = (req, res) => User.create({ ...req.body })
@@ -33,12 +35,12 @@ const createUser = (req, res) => User.create({ ...req.body })
     console.log(error.name);
 
     if (error.name === 'ValidationError') {
-      return res.status(400).send({
+      return res.status(statusCodes.BAD_REQUEST).send({
         message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
       });
     }
 
-    return res.status(500).send('На сервере произошла ошибка');
+    return res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка');
   });
 
 const updateUser = (req, res) => User.findByIdAndUpdate(
@@ -47,18 +49,18 @@ const updateUser = (req, res) => User.findByIdAndUpdate(
   { new: true, runValidators: true },
 )
   .then((user) => {
-    res.status(200).send(user);
+    res.status(statusCodes.OK).send(user);
   })
   .catch((error) => {
     console.log(error);
 
     if (error.name === 'ValidationError') {
-      return res.status(400).send({
+      return res.status(statusCodes.BAD_REQUEST).send({
         message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
       });
     }
 
-    return res.status(500).send('На сервере произошла ошибка');
+    return res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка');
   });
 
 module.exports = {
