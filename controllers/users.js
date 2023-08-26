@@ -1,6 +1,9 @@
 const User = require('../models/user');
+const bcrypt = require('bcrypt');
 
 const statusCodes = require('../utils/constants').HTTP_STATUS;
+
+const SALT_ROUNDS = 10;
 
 const getUsers = (req, res) => User.find({})
   .then((users) => {
@@ -27,21 +30,22 @@ const getUserById = (req, res) => User.findById(req.params.id)
     return res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка');
   });
 
-const createUser = (req, res) => User.create({ ...req.body })
-  .then((user) => {
-    res.status(201).send(user);
-  })
-  .catch((error) => {
-    console.log(error.name);
+const createUser = (req, res) => {
+  bcrypt.hash(req.body.password, SALT_ROUNDS)
+    .then((hash) => User.create({ ...req.body, password: hash }))
+    .then(({ _id, email }) => res.status(statusCodes.OK).send({ _id, email }))
+    .catch((error) => {
+      console.log('error:', error);
 
-    if (error.name === 'ValidationError') {
-      return res.status(statusCodes.BAD_REQUEST).send({
-        message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
-      });
-    }
+      if (error.name === 'ValidationError') {
+        return res.status(400).send({
+          message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
+        });
+      }
 
-    return res.status(statusCodes.INTERNAL_SERVER_ERROR).send('На сервере произошла ошибка');
-  });
+      return res.status(500).send('На сервере произошла ошибка');
+    });
+};
 
 const updateUser = (req, res) => User.findByIdAndUpdate(
   req.user._id,
