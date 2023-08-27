@@ -10,6 +10,18 @@ const getUsers = (req, res) => User.find({})
     .status(statusCodes.INTERNAL_SERVER_ERROR)
     .send({ message: 'На сервере произошла ошибка' }));
 
+const getCurrentUser = (req, res) => User.findById(req.user._id)
+  .then((user) => {
+    res.status(statusCodes.OK).send(user);
+  })
+  .catch((error) => {
+    console.log(error);
+
+    return res
+      .status(statusCodes.INTERNAL_SERVER_ERROR)
+      .send({ message: 'На сервере произошла ошибка' });
+  });
+
 const getUserById = (req, res) => User.findById(req.params.id)
   .orFail(new Error('NotFoundError'))
   .then((user) => {
@@ -61,6 +73,7 @@ const updateUser = (req, res) => User.findByIdAndUpdate(
 
 module.exports = {
   getUsers,
+  getCurrentUser,
   getUserById,
   updateUser,
 };
