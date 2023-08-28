@@ -10,7 +10,7 @@ const { JWT_SECRET = 'SECRET_KEY' } = process.env;
 const createUser = (req, res) => {
   bcrypt.hash(req.body.password, SALT_ROUNDS)
     .then((hash) => User.create({ ...req.body, password: hash }))
-    .then(({ _id, email }) => res.status(statusCodes.OK).send({ _id, email }))
+    .then(({ _id, email }) => res.status(statusCodes.CREATED).send({ _id, email }))
     .catch((error) => {
       console.log('error:', error);
 
@@ -37,7 +37,7 @@ const login = (req, res) => {
       .send({ message: 'Email или пароль не могут быть пустыми' });
   }
 
-  User.findOne({ email })
+  User.findOne({ email }).select('+password')
     .orFail(new Error('NotFoundError'))
     .then((user) => Promise.all([user, bcrypt.compare(password, user.password)]))
     .then(([user, isEqual]) => {
