@@ -4,41 +4,45 @@ const jwt = require('jsonwebtoken');
 
 const statusCodes = require('../utils/constants').HTTP_STATUS;
 
+const BadRequestError = require('../errors/bad-request-error');
+const ValidationError = require('../errors/validation-error');
+const ConflictError = require('../errors/conflict-error');
+const UnauthorizedError = require('../errors/unauthorized-error');
+
+const MONGO_DUPLICATE_KEY_ERROR = 11000;
 const SALT_ROUNDS = 10;
 const { JWT_SECRET = 'SECRET_KEY' } = process.env;
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, SALT_ROUNDS)
     .then((hash) => User.create({ ...req.body, password: hash }))
     .then(({ _id, email }) => res.status(statusCodes.CREATED).send({ _id, email }))
     .catch((error) => {
       console.log('error:', error);
 
-      if (error.name === 'ValidationError') {
-        return res
-          .status(statusCodes.BAD_REQUEST)
-          .send({
-            message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
-          });
+      if (error.code === MONGO_DUPLICATE_KEY_ERROR) {
+        next(new ConflictError('Такой пользователь уже есть'));
+        return;
       }
 
-      return res
-        .status(statusCodes.INTERNAL_SERVER_ERROR)
-        .send({ message: 'На сервере произошла ошибка' });
+      if (error.name === 'ValidationError') {
+        next(new ValidationError(`${Object.values(error.errors).map((err) => err.message).join(', ')}`));
+        return;
+      }
+
+      next(error);
     });
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(statusCodes.BAD_REQUEST)
-      .send({ message: 'Email или пароль не могут быть пустыми' });
+    next(new BadRequestError('Email или пароль не могут быть пустыми'));
   }
 
   User.findOne({ email }).select('+password')
-    .orFail(new Error('NotFoundError'))
+    .orFail()
     .then((user) => Promise.all([user, bcrypt.compare(password, user.password)]))
     .then(([user, isEqual]) => {
       if (!isEqual) {
@@ -46,24 +50,18 @@ const login = (req, res) => {
       }
 
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
-      return res.status(statusCodes.OK).send({ token });
+      res.status(statusCodes.OK).send({ token });
     })
     .catch((error) => {
       console.log('error:', error);
 
-      if (error.message === 'NotFoundError' || error.message === 'UnauthorizedError') {
-        return res
-          .status(statusCodes.UNAUTHORIZED)
-          .send({ message: 'Email или пароль неверный' });
+      if (error.name === 'DocumentNotFoundError' || error.message === 'UnauthorizedError') {
+        next(new UnauthorizedError('Email или пароль неверный'));
+        return;
       }
 
-      return res
-        .status(statusCodes.INTERNAL_SERVER_ERROR)
-        .send({ message: 'На сервере произошла ошибка' });
+      next(error);
     });
-
-  // Выполнить требование правила Eslint "consistent-return".
-  return null;
 };
 
 module.exports = {

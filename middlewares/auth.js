@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
-
-const statusCodes = require('../utils/constants').HTTP_STATUS;
+const UnauthorizedError = require('../errors/unauthorized-error');
 
 const { JWT_SECRET = 'SECRET_KEY' } = process.env;
 
@@ -11,13 +10,8 @@ const auth = (req, res, next) => {
     req.user = payload;
     next();
   } catch (error) {
-    return res
-      .status(statusCodes.UNAUTHORIZED)
-      .send({ message: 'Пользователь не авторизован' });
+    next(new UnauthorizedError('Пользователь не авторизован'));
   }
-
-  // Выполнить требование правила Eslint "consistent-return".
-  return null;
 };
 
 module.exports = auth;

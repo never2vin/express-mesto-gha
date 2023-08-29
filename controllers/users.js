@@ -2,28 +2,24 @@ const User = require('../models/user');
 
 const statusCodes = require('../utils/constants').HTTP_STATUS;
 
-const getUsers = (req, res) => User.find({})
+const BadRequestError = require('../errors/bad-request-error');
+const ValidationError = require('../errors/validation-error');
+const NotFoundError = require('../errors/not-found-error');
+
+const getUsers = (req, res, next) => User.find({})
   .then((users) => {
     res.status(statusCodes.OK).send(users);
   })
-  .catch(() => res
-    .status(statusCodes.INTERNAL_SERVER_ERROR)
-    .send({ message: 'На сервере произошла ошибка' }));
+  .catch(next);
 
-const getCurrentUser = (req, res) => User.findById(req.user._id)
+const getCurrentUser = (req, res, next) => User.findById(req.user._id)
   .then((user) => {
     res.status(statusCodes.OK).send(user);
   })
-  .catch((error) => {
-    console.log(error);
+  .catch(next);
 
-    return res
-      .status(statusCodes.INTERNAL_SERVER_ERROR)
-      .send({ message: 'На сервере произошла ошибка' });
-  });
-
-const getUserById = (req, res) => User.findById(req.params.id)
-  .orFail(new Error('NotFoundError'))
+const getUserById = (req, res, next) => User.findById(req.params.userId)
+  .orFail()
   .then((user) => {
     res.status(statusCodes.OK).send(user);
   })
@@ -31,23 +27,19 @@ const getUserById = (req, res) => User.findById(req.params.id)
     console.log(error);
 
     if (error.name === 'CastError') {
-      return res
-        .status(statusCodes.BAD_REQUEST)
-        .send({ message: 'Переданы некорректные данные' });
+      next(new BadRequestError('Переданы некорректные данные'));
+      return;
     }
 
-    if (error.message === 'NotFoundError') {
-      return res
-        .status(statusCodes.NOT_FOUND)
-        .send({ message: 'Пользователь не найден' });
+    if (error.name === 'DocumentNotFoundError') {
+      next(new NotFoundError('Пользователь не найден'));
+      return;
     }
 
-    return res
-      .status(statusCodes.INTERNAL_SERVER_ERROR)
-      .send({ message: 'На сервере произошла ошибка' });
+    next(error);
   });
 
-const updateUser = (req, res) => User.findByIdAndUpdate(
+const updateUser = (req, res, next) => User.findByIdAndUpdate(
   req.user._id,
   req.body,
   { new: true, runValidators: true },
@@ -59,16 +51,11 @@ const updateUser = (req, res) => User.findByIdAndUpdate(
     console.log(error);
 
     if (error.name === 'ValidationError') {
-      return res
-        .status(statusCodes.BAD_REQUEST)
-        .send({
-          message: `${Object.values(error.errors).map((err) => err.message).join(', ')}`,
-        });
+      next(new ValidationError(`${Object.values(error.errors).map((err) => err.message).join(', ')}`));
+      return;
     }
 
-    return res
-      .status(statusCodes.INTERNAL_SERVER_ERROR)
-      .send({ message: 'На сервере произошла ошибка' });
+    next(error);
   });
 
 module.exports = {
