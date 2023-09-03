@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { errors } = require('celebrate');
 const authRouter = require('./auth');
 const usersRouter = require('./users');
 const cardsRouter = require('./cards');
@@ -18,6 +19,7 @@ router.use((req, res, next) => {
   next(new NotFoundError('Ресурс не найден. Проверьте URL и метод запроса'));
 });
 
+router.use(errors());
 router.use(errorHandler);
 
 module.exports = router;

@@ -1,10 +1,9 @@
-const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 
 const statusCodes = require('../utils/constants').HTTP_STATUS;
 
-const BadRequestError = require('../errors/bad-request-error');
 const ValidationError = require('../errors/validation-error');
 const ConflictError = require('../errors/conflict-error');
 const UnauthorizedError = require('../errors/unauthorized-error');
@@ -36,10 +35,6 @@ const createUser = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    next(new BadRequestError('Email или пароль не могут быть пустыми'));
-  }
 
   User.findOne({ email }).select('+password')
     .orFail()
