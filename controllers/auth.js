@@ -15,7 +15,13 @@ const { JWT_SECRET = 'SECRET_KEY' } = process.env;
 const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, SALT_ROUNDS)
     .then((hash) => User.create({ ...req.body, password: hash }))
-    .then(({ _id, email }) => res.status(statusCodes.CREATED).send({ _id, email }))
+    .then((user) => res.status(statusCodes.CREATED).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      email: user.email,
+      _id: user._id,
+    }))
     .catch((error) => {
       console.log('error:', error);
 
